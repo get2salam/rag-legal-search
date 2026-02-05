@@ -213,4 +213,4 @@ MIT License - see [LICENSE](LICENSE)
 
 ---
 
-*Part of the Qanoon.com project — AI-powered legal research for Pakistan* 🇵🇰
+*Building the future of legal technology.*
