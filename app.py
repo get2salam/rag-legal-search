@@ -358,15 +358,44 @@ def main():
         st.markdown("### 📥 Export Results")
         
         import json
+        import csv
+        from io import StringIO
+        
         export_data = json.dumps(results, indent=2)
         
-        col1, col2 = st.columns(2)
+        # Generate CSV
+        csv_buffer = StringIO()
+        if results:
+            fieldnames = ['title', 'citation', 'court', 'date', 'category', 'score', 'summary']
+            writer = csv.DictWriter(csv_buffer, fieldnames=fieldnames, extrasaction='ignore')
+            writer.writeheader()
+            for r in results:
+                writer.writerow(r)
+        csv_data = csv_buffer.getvalue()
+        
+        col1, col2, col3 = st.columns(3)
         with col1:
             st.download_button(
                 "📄 Download JSON",
                 data=export_data,
                 file_name="legal_search_results.json",
                 mime="application/json"
+            )
+        with col2:
+            st.download_button(
+                "📊 Download CSV",
+                data=csv_data,
+                file_name="legal_search_results.csv",
+                mime="text/csv"
+            )
+        with col3:
+            # Copy citations to clipboard
+            citations = "\n".join([r.get('citation', '') for r in results if r.get('citation')])
+            st.download_button(
+                "📋 Citations Only",
+                data=citations,
+                file_name="citations.txt",
+                mime="text/plain"
             )
 
 
