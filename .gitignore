@@ -38,3 +38,6 @@ data/embeddings/
 
 # Logs
 *.log
+
+# Experiments (local tracking data)
+experiments/
