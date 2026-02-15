@@ -19,6 +19,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utils.embeddings import EmbeddingModel
 from utils.vector_store import get_vector_store
+from utils.chunking import get_chunker
 
 
 def load_json_cases(path: str) -> List[Dict]:
@@ -88,26 +89,14 @@ def load_text_cases(directory: str) -> List[Dict]:
 
 
 def chunk_text(text: str, chunk_size: int = 1000, overlap: int = 200) -> List[str]:
-    """Split text into overlapping chunks."""
-    chunks = []
-    start = 0
-    
-    while start < len(text):
-        end = start + chunk_size
-        
-        # Try to break at paragraph boundary
-        if end < len(text):
-            para_break = text.rfind("\n\n", start, end)
-            if para_break > start + chunk_size // 2:
-                end = para_break
-        
-        chunk = text[start:end].strip()
-        if chunk:
-            chunks.append(chunk)
-        
-        start = end - overlap
-    
-    return chunks
+    """Split text into overlapping chunks (legacy wrapper).
+
+    For new code, prefer ``utils.chunking.get_chunker()`` which supports
+    multiple strategies (fixed, sentence, recursive, semantic, sliding_window,
+    structure) with richer Chunk metadata.
+    """
+    chunker = get_chunker("recursive", chunk_size=chunk_size, overlap=overlap)
+    return [c.text for c in chunker.chunk(text)]
 
 
 def ingest(
@@ -116,13 +105,15 @@ def ingest(
     model: str = "local",
     store: str = "chroma",
     chunk_size: int = 1000,
-    batch_size: int = 50
+    batch_size: int = 50,
+    chunk_strategy: str = "recursive",
 ):
     """Ingest documents into the vector store."""
     print(f"📥 Ingesting documents from: {source}")
     print(f"   Format: {format}")
     print(f"   Model: {model}")
     print(f"   Store: {store}")
+    print(f"   Chunking strategy: {chunk_strategy}")
     print()
     
     # Load cases
@@ -138,19 +129,22 @@ def ingest(
     
     print(f"   Loaded {len(cases)} documents")
     
-    # Chunk documents
-    print("\n✂️ Chunking documents...")
+    # Chunk documents using the selected strategy
+    print(f"\n✂️ Chunking documents (strategy: {chunk_strategy})...")
+    chunker = get_chunker(chunk_strategy, chunk_size=chunk_size, overlap=min(200, chunk_size // 5))
     chunked_cases = []
     for case in cases:
         text = case.get('text', '')
         if len(text) > chunk_size:
-            chunks = chunk_text(text, chunk_size)
-            for i, chunk in enumerate(chunks):
+            chunks = chunker.chunk(text)
+            for chunk_obj in chunks:
                 chunked_case = {**case}
-                chunked_case['id'] = f"{case.get('id', 'doc')}_{i}"
-                chunked_case['text'] = chunk
-                chunked_case['chunk_index'] = i
+                chunked_case['id'] = f"{case.get('id', 'doc')}_{chunk_obj.index}"
+                chunked_case['text'] = chunk_obj.text
+                chunked_case['chunk_index'] = chunk_obj.index
                 chunked_case['total_chunks'] = len(chunks)
+                chunked_case['chunk_start'] = chunk_obj.start_char
+                chunked_case['chunk_end'] = chunk_obj.end_char
                 chunked_cases.append(chunked_case)
         else:
             chunked_cases.append(case)
@@ -202,7 +196,10 @@ if __name__ == "__main__":
     parser.add_argument("--store", default="chroma", choices=["chroma", "pinecone"],
                        help="Vector store (default: chroma)")
     parser.add_argument("--chunk-size", type=int, default=1000, help="Chunk size in chars")
+    parser.add_argument("--chunk-strategy", default="recursive",
+                       choices=["fixed", "sentence", "recursive", "sliding_window", "structure"],
+                       help="Chunking strategy (default: recursive)")
     parser.add_argument("--batch-size", type=int, default=50, help="Batch size for processing")
     
     args = parser.parse_args()
-    ingest(args.source, args.format, args.model, args.store, args.chunk_size, args.batch_size)
+    ingest(args.source, args.format, args.model, args.store, args.chunk_size, args.batch_size, args.chunk_strategy)
