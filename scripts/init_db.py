@@ -7,7 +7,6 @@ Usage:
 """
 
 import argparse
-import json
 import sys
 import os
 
@@ -35,7 +34,7 @@ SAMPLE_CASES = [
 
 3. The employer terminated the contract and engaged alternative contractors. The contractor claimed wrongful termination, arguing that time was not of the essence.
 
-4. We hold that in a construction contract of this nature, the completion date is a condition of the contract. Failure to complete by that date, particularly where the delay is substantial and ongoing, constitutes a repudiatory breach entitling the innocent party to terminate."""
+4. We hold that in a construction contract of this nature, the completion date is a condition of the contract. Failure to complete by that date, particularly where the delay is substantial and ongoing, constitutes a repudiatory breach entitling the innocent party to terminate.""",
     },
     {
         "id": "case_002",
@@ -54,7 +53,7 @@ SAMPLE_CASES = [
 
 3. The employer failed to conduct a proper investigation before proceeding to a disciplinary hearing. Key witnesses were not interviewed, and the claimant was not given adequate time to prepare his defence.
 
-4. We affirm the principle that procedural fairness is not a mere formality. Even where the alleged misconduct is serious, an employer must follow a fair process. The failure to do so in this case rendered the dismissal both wrongful and unfair."""
+4. We affirm the principle that procedural fairness is not a mere formality. Even where the alleged misconduct is serious, an employer must follow a fair process. The failure to do so in this case rendered the dismissal both wrongful and unfair.""",
     },
     {
         "id": "case_003",
@@ -73,7 +72,7 @@ SAMPLE_CASES = [
 
 3. The defendant argued that the license terms were ambiguous and that 'employees' should be interpreted to mean 'concurrent users'. I reject this argument. The license agreement is clear in its terms.
 
-4. I find that the defendant breached the license agreement and infringed the claimant's copyright. Damages are assessed at the cost of the additional licenses that should have been purchased, plus a reasonable uplift for the flagrant nature of the infringement."""
+4. I find that the defendant breached the license agreement and infringed the claimant's copyright. Damages are assessed at the cost of the additional licenses that should have been purchased, plus a reasonable uplift for the flagrant nature of the infringement.""",
     },
     {
         "id": "case_004",
@@ -92,7 +91,7 @@ SAMPLE_CASES = [
 
 3. The question for the jury was whether the force used was reasonable in the circumstances as the appellant believed them to be. The judge directed the jury that they must consider whether the appellant genuinely believed he was in danger.
 
-4. We find no misdirection. The judge correctly applied the two-stage test: first, did the defendant genuinely believe force was necessary; second, was the degree of force reasonable. The conviction is safe."""
+4. We find no misdirection. The judge correctly applied the two-stage test: first, did the defendant genuinely believe force was necessary; second, was the degree of force reasonable. The conviction is safe.""",
     },
     {
         "id": "case_005",
@@ -111,7 +110,7 @@ SAMPLE_CASES = [
 
 3. Applying the principles established in White v White and Miller v Miller, I find that the sharing principle applies to the business. The wife's domestic contributions are to be valued equally with the husband's financial contributions.
 
-4. I order that the wife receive 45% of the total matrimonial assets, which includes a transfer of shares in the company and a lump sum payment."""
+4. I order that the wife receive 45% of the total matrimonial assets, which includes a transfer of shares in the company and a lump sum payment.""",
     },
     {
         "id": "case_006",
@@ -130,7 +129,7 @@ SAMPLE_CASES = [
 
 3. The defendant invoked the force majeure clause in the connection agreement. The claimant argued that the supply chain issues were foreseeable and that the defendant should have taken reasonable steps to mitigate the delay.
 
-4. I find that the force majeure clause was properly invoked. The supply chain disruptions were of an unprecedented nature and scale. However, the defendant's obligation to use reasonable endeavours to overcome the force majeure event required it to explore alternative suppliers, which it failed to do for the first six months."""
+4. I find that the force majeure clause was properly invoked. The supply chain disruptions were of an unprecedented nature and scale. However, the defendant's obligation to use reasonable endeavours to overcome the force majeure event required it to explore alternative suppliers, which it failed to do for the first six months.""",
     },
     {
         "id": "case_007",
@@ -149,7 +148,7 @@ SAMPLE_CASES = [
 
 3. HMRC assessed the distributions as income, resulting in additional tax liabilities of approximately £180,000 across the three tax years.
 
-4. I find that the distributions were correctly characterised as income. The trust deed is clear that rental income retains its character as income when distributed. The trustees' description of the payments as 'capital' does not change their true nature for tax purposes."""
+4. I find that the distributions were correctly characterised as income. The trust deed is clear that rental income retains its character as income when distributed. The trustees' description of the payments as 'capital' does not change their true nature for tax purposes.""",
     },
     {
         "id": "case_008",
@@ -168,7 +167,7 @@ SAMPLE_CASES = [
 
 3. The respondent argues that the works were necessary for the building's continued use and that requiring their reversal would be disproportionate.
 
-4. I dismiss the appeal. The protection of listed buildings is a matter of significant public interest. The alterations were carried out in knowing disregard of the consent requirement. The enforcement notice is proportionate and necessary to preserve the building's special architectural and historic interest."""
+4. I dismiss the appeal. The protection of listed buildings is a matter of significant public interest. The alterations were carried out in knowing disregard of the consent requirement. The enforcement notice is proportionate and necessary to preserve the building's special architectural and historic interest.""",
     },
     {
         "id": "case_009",
@@ -187,7 +186,7 @@ SAMPLE_CASES = [
 
 3. The Secretary of State argues that the provisions are necessary for national security and the prevention of serious crime, and are proportionate to those legitimate aims.
 
-4. I find that while the aims pursued are legitimate, the provisions as drafted lack sufficient safeguards. The absence of prior judicial authorisation for access to encrypted communications, combined with the breadth of the power, renders the provisions disproportionate. I make a declaration of incompatibility under section 4 of the Human Rights Act 1998."""
+4. I find that while the aims pursued are legitimate, the provisions as drafted lack sufficient safeguards. The absence of prior judicial authorisation for access to encrypted communications, combined with the breadth of the power, renders the provisions disproportionate. I make a declaration of incompatibility under section 4 of the Human Rights Act 1998.""",
     },
     {
         "id": "case_010",
@@ -206,66 +205,74 @@ SAMPLE_CASES = [
 
 3. The defendant admits that the X-ray was negligently reported but disputes causation, arguing that even with timely diagnosis, the outcome would likely have been the same.
 
-4. Applying the principles from Gregg v Scott, I find that the defendant's negligence caused the claimant to lose a 35% chance of achieving five-year survival. This loss of chance is actionable. Damages are assessed accordingly."""
-    }
+4. Applying the principles from Gregg v Scott, I find that the defendant's negligence caused the claimant to lose a 35% chance of achieving five-year survival. This loss of chance is actionable. Damages are assessed accordingly.""",
+    },
 ]
 
 
 def init_database(model_name: str = "local", store_type: str = "chroma"):
     """Initialize the vector database with sample cases."""
-    print(f"🔧 Initializing vector database...")
+    print("🔧 Initializing vector database...")
     print(f"   Embedding model: {model_name}")
     print(f"   Vector store: {store_type}")
     print()
-    
+
     # Initialize components
     print("📦 Loading embedding model...")
     embeddings = EmbeddingModel(model_name)
     print(f"   Model: {embeddings.model} ({embeddings.dimensions}d)")
-    
+
     print("💾 Connecting to vector store...")
     store = get_vector_store(store_type)
-    
+
     # Generate embeddings
     print(f"\n🔢 Generating embeddings for {len(SAMPLE_CASES)} sample cases...")
-    texts = [case['text'] for case in SAMPLE_CASES]
+    texts = [case["text"] for case in SAMPLE_CASES]
     vectors = embeddings.embed_documents(texts)
     print(f"   Generated {len(vectors)} embeddings")
-    
+
     # Store in vector DB
     print("\n📥 Storing in vector database...")
-    ids = [case['id'] for case in SAMPLE_CASES]
-    store.add_documents(
-        documents=SAMPLE_CASES,
-        embeddings=vectors,
-        ids=ids
-    )
+    ids = [case["id"] for case in SAMPLE_CASES]
+    store.add_documents(documents=SAMPLE_CASES, embeddings=vectors, ids=ids)
     print(f"   Stored {len(SAMPLE_CASES)} cases")
-    
+
     # Verify
     print("\n✅ Database initialized successfully!")
     print(f"   Total cases: {len(SAMPLE_CASES)}")
     print(f"   Vector dimensions: {embeddings.dimensions}")
     print(f"   Store type: {store_type}")
-    
+
     # Test query
     print("\n🔍 Running test query: 'breach of contract'...")
     query_vec = embeddings.embed_query("breach of contract")
     results = store.search(query_vec, top_k=3)
     print(f"   Top {len(results)} results:")
     for i, r in enumerate(results, 1):
-        meta = r.get('metadata', {})
-        print(f"   {i}. {meta.get('title', 'Unknown')} (score: {r.get('score', 0):.3f})")
-    
+        meta = r.get("metadata", {})
+        print(
+            f"   {i}. {meta.get('title', 'Unknown')} (score: {r.get('score', 0):.3f})"
+        )
+
     print("\n🎉 Done! Run `streamlit run app.py` to start searching.")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Initialize the RAG Legal Search database")
-    parser.add_argument("--model", default="local", choices=["local", "openai", "openai-large"],
-                       help="Embedding model to use (default: local)")
-    parser.add_argument("--store", default="chroma", choices=["chroma", "pinecone"],
-                       help="Vector store type (default: chroma)")
-    
+    parser = argparse.ArgumentParser(
+        description="Initialize the RAG Legal Search database"
+    )
+    parser.add_argument(
+        "--model",
+        default="local",
+        choices=["local", "openai", "openai-large"],
+        help="Embedding model to use (default: local)",
+    )
+    parser.add_argument(
+        "--store",
+        default="chroma",
+        choices=["chroma", "pinecone"],
+        help="Vector store type (default: chroma)",
+    )
+
     args = parser.parse_args()
     init_database(args.model, args.store)

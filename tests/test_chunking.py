@@ -80,6 +80,7 @@ def dummy_embed_fn(texts: list) -> np.ndarray:
 # Chunk dataclass
 # ---------------------------------------------------------------------------
 
+
 class TestChunkDataclass:
     def test_token_estimate(self):
         c = Chunk(text="a" * 400, index=0, start_char=0, end_char=400)
@@ -103,6 +104,7 @@ class TestChunkDataclass:
 # ---------------------------------------------------------------------------
 # FixedSizeChunker
 # ---------------------------------------------------------------------------
+
 
 class TestFixedSizeChunker:
     def test_basic_chunking(self):
@@ -154,6 +156,7 @@ class TestFixedSizeChunker:
 # SentenceChunker
 # ---------------------------------------------------------------------------
 
+
 class TestSentenceChunker:
     def test_basic_chunking(self):
         chunker = SentenceChunker(max_chunk_size=200, sentence_overlap=1)
@@ -191,6 +194,7 @@ class TestSentenceChunker:
 # RecursiveChunker
 # ---------------------------------------------------------------------------
 
+
 class TestRecursiveChunker:
     def test_basic_chunking(self):
         chunker = RecursiveChunker(chunk_size=200, overlap=50)
@@ -224,6 +228,7 @@ class TestRecursiveChunker:
 # ---------------------------------------------------------------------------
 # SemanticChunker
 # ---------------------------------------------------------------------------
+
 
 class TestSemanticChunker:
     def test_basic_chunking(self):
@@ -283,6 +288,7 @@ class TestSemanticChunker:
 # SlidingWindowChunker
 # ---------------------------------------------------------------------------
 
+
 class TestSlidingWindowChunker:
     def test_basic_chunking(self):
         chunker = SlidingWindowChunker(window_sentences=3, stride_sentences=2)
@@ -330,6 +336,7 @@ class TestSlidingWindowChunker:
 # StructureAwareChunker
 # ---------------------------------------------------------------------------
 
+
 class TestStructureAwareChunker:
     def test_detects_markdown_sections(self):
         chunker = StructureAwareChunker(max_chunk_size=500)
@@ -368,6 +375,7 @@ class TestStructureAwareChunker:
 # ---------------------------------------------------------------------------
 # Factory function
 # ---------------------------------------------------------------------------
+
 
 class TestFactory:
     def test_get_fixed(self):
@@ -408,23 +416,31 @@ class TestFactory:
 # chunk_many (batch interface)
 # ---------------------------------------------------------------------------
 
+
 class TestChunkMany:
     def test_batch_chunking(self):
         chunker = FixedSizeChunker(chunk_size=200, overlap=50)
         results = chunker.chunk_many([SAMPLE_TEXT, SHORT_TEXT, ""])
         assert len(results) == 3
-        assert len(results[0]) > 1   # SAMPLE_TEXT produces multiple chunks
-        assert len(results[1]) == 1   # SHORT_TEXT is one chunk
-        assert len(results[2]) == 0   # Empty produces no chunks
+        assert len(results[0]) > 1  # SAMPLE_TEXT produces multiple chunks
+        assert len(results[1]) == 1  # SHORT_TEXT is one chunk
+        assert len(results[2]) == 0  # Empty produces no chunks
 
 
 # ---------------------------------------------------------------------------
 # Edge cases
 # ---------------------------------------------------------------------------
 
+
 class TestEdgeCases:
     def test_whitespace_only(self):
-        for strategy in ["fixed", "sentence", "recursive", "sliding_window", "structure"]:
+        for strategy in [
+            "fixed",
+            "sentence",
+            "recursive",
+            "sliding_window",
+            "structure",
+        ]:
             chunker = get_chunker(strategy) if strategy != "semantic" else None
             if chunker:
                 assert chunker.chunk("   \n\n\t  ") == []

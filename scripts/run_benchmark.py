@@ -32,7 +32,12 @@ SAMPLE_BENCHMARK = {
     "queries": [
         {
             "query": "breach of contract remedies and damages",
-            "relevant_ids": ["contract_001", "contract_015", "contract_022", "remedy_003"],
+            "relevant_ids": [
+                "contract_001",
+                "contract_015",
+                "contract_022",
+                "remedy_003",
+            ],
         },
         {
             "query": "wrongful termination in employment",
@@ -48,7 +53,12 @@ SAMPLE_BENCHMARK = {
         },
         {
             "query": "landlord tenant eviction procedure",
-            "relevant_ids": ["property_008", "property_021", "tenant_005", "eviction_001"],
+            "relevant_ids": [
+                "property_008",
+                "property_021",
+                "tenant_005",
+                "eviction_001",
+            ],
         },
         {
             "query": "corporate merger shareholder approval",
@@ -56,7 +66,12 @@ SAMPLE_BENCHMARK = {
         },
         {
             "query": "negligence duty of care standard",
-            "relevant_ids": ["tort_001", "tort_023", "negligence_005", "negligence_019"],
+            "relevant_ids": [
+                "tort_001",
+                "tort_023",
+                "negligence_005",
+                "negligence_019",
+            ],
         },
         {
             "query": "criminal sentencing guidelines appeal",
@@ -145,8 +160,7 @@ def run_benchmark(
 
     # Simulate retrieval (replace with real retriever in production)
     retrieved = [
-        simulate_retrieval(q["query"], q["relevant_ids"])
-        for q in queries_data
+        simulate_retrieval(q["query"], q["relevant_ids"]) for q in queries_data
     ]
 
     # Evaluate
@@ -154,19 +168,23 @@ def run_benchmark(
 
     # Log experiment
     with tracker.start_run(benchmark["name"], tags=["benchmark"]) as run:
-        run.log_params({
-            "benchmark": benchmark["name"],
-            "num_queries": len(queries),
-            "k_values": [1, 3, 5, 10],
-            "retriever": "simulated",
-            "quick_mode": quick,
-        })
+        run.log_params(
+            {
+                "benchmark": benchmark["name"],
+                "num_queries": len(queries),
+                "k_values": [1, 3, 5, 10],
+                "retriever": "simulated",
+                "quick_mode": quick,
+            }
+        )
 
-        run.log_metrics({
-            "mrr": report.mrr,
-            "map": report.map_score,
-            "hit_rate": report.hit_rate,
-        })
+        run.log_metrics(
+            {
+                "mrr": report.mrr,
+                "map": report.map_score,
+                "hit_rate": report.hit_rate,
+            }
+        )
 
         for k in report.k_values:
             run.log_metric(f"precision@{k}", report.mean_precision_at_k.get(k, 0))
@@ -189,7 +207,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run retrieval benchmark")
     parser.add_argument("--config", help="Path to benchmark config JSON")
     parser.add_argument("--quick", action="store_true", help="Run quick subset")
-    parser.add_argument("--experiment-dir", default="experiments", help="Experiment directory")
+    parser.add_argument(
+        "--experiment-dir", default="experiments", help="Experiment directory"
+    )
 
     args = parser.parse_args()
     run_benchmark(args.config, args.quick, args.experiment_dir)

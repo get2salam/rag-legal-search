@@ -190,7 +190,9 @@ class RetrievalEvaluator:
             return total
 
         # Ideal ranking: sort all relevant docs by descending score
-        ideal_ranking = sorted(rel_scores.keys(), key=lambda d: rel_scores[d], reverse=True)
+        ideal_ranking = sorted(
+            rel_scores.keys(), key=lambda d: rel_scores[d], reverse=True
+        )
         ideal = dcg(ideal_ranking, k)
 
         if ideal == 0.0:

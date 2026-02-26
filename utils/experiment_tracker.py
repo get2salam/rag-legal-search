@@ -19,7 +19,6 @@ Usage:
 """
 
 import json
-import os
 import time
 import logging
 from contextlib import contextmanager
@@ -162,7 +161,9 @@ class ExperimentTracker:
 
     def _save_run(self, record: RunRecord) -> None:
         path = self._runs_dir / f"{record.run_id}.json"
-        path.write_text(json.dumps(asdict(record), indent=2, default=str), encoding="utf-8")
+        path.write_text(
+            json.dumps(asdict(record), indent=2, default=str), encoding="utf-8"
+        )
 
     @contextmanager
     def start_run(self, name: str, tags: Optional[List[str]] = None):
@@ -213,7 +214,13 @@ class ExperimentTracker:
         for path in sorted(self._runs_dir.glob("*.json"), reverse=True):
             try:
                 data = json.loads(path.read_text(encoding="utf-8"))
-                rec = RunRecord(**{k: v for k, v in data.items() if k in RunRecord.__dataclass_fields__})
+                rec = RunRecord(
+                    **{
+                        k: v
+                        for k, v in data.items()
+                        if k in RunRecord.__dataclass_fields__
+                    }
+                )
             except Exception:
                 continue
 
@@ -236,7 +243,9 @@ class ExperimentTracker:
         if not path.exists():
             return None
         data = json.loads(path.read_text(encoding="utf-8"))
-        return RunRecord(**{k: v for k, v in data.items() if k in RunRecord.__dataclass_fields__})
+        return RunRecord(
+            **{k: v for k, v in data.items() if k in RunRecord.__dataclass_fields__}
+        )
 
     def delete_run(self, run_id: str) -> bool:
         """Remove a run and its artifacts."""
@@ -248,6 +257,7 @@ class ExperimentTracker:
         artifact_dir = self._base_dir / "artifacts" / run_id
         if artifact_dir.exists():
             import shutil
+
             shutil.rmtree(artifact_dir)
 
         logger.info("Deleted run: %s", run_id)
@@ -329,7 +339,9 @@ class ExperimentTracker:
         rows.append("* = best")
         return "\n".join(rows)
 
-    def best_run(self, metric: str, higher_is_better: bool = True) -> Optional[RunRecord]:
+    def best_run(
+        self, metric: str, higher_is_better: bool = True
+    ) -> Optional[RunRecord]:
         """Find the run with the best value for a given metric."""
         runs = self.list_runs(status_filter="completed", limit=500)
         if not runs:

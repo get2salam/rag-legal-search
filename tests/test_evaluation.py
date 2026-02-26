@@ -3,20 +3,18 @@ Tests for retrieval evaluation metrics and experiment tracking.
 """
 
 import json
-import math
-import tempfile
-import shutil
 from pathlib import Path
 
 import pytest
 
-from utils.evaluation import RetrievalEvaluator, EvaluationReport, QueryMetrics
-from utils.experiment_tracker import ExperimentTracker, RunRecord
+from utils.evaluation import RetrievalEvaluator, EvaluationReport
+from utils.experiment_tracker import ExperimentTracker
 
 
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def evaluator():
@@ -38,6 +36,7 @@ def tracker(experiment_dir):
 # ---------------------------------------------------------------------------
 # Precision@K
 # ---------------------------------------------------------------------------
+
 
 class TestPrecisionAtK:
     def test_perfect_precision(self, evaluator):
@@ -72,6 +71,7 @@ class TestPrecisionAtK:
 # Recall@K
 # ---------------------------------------------------------------------------
 
+
 class TestRecallAtK:
     def test_perfect_recall(self, evaluator):
         retrieved = ["a", "b", "c"]
@@ -99,6 +99,7 @@ class TestRecallAtK:
 # Reciprocal Rank
 # ---------------------------------------------------------------------------
 
+
 class TestReciprocalRank:
     def test_first_position(self, evaluator):
         assert evaluator.reciprocal_rank(["a", "b", "c"], {"a"}) == 1.0
@@ -117,6 +118,7 @@ class TestReciprocalRank:
 # ---------------------------------------------------------------------------
 # Average Precision
 # ---------------------------------------------------------------------------
+
 
 class TestAveragePrecision:
     def test_perfect_ranking(self, evaluator):
@@ -148,6 +150,7 @@ class TestAveragePrecision:
 # ---------------------------------------------------------------------------
 # NDCG@K
 # ---------------------------------------------------------------------------
+
 
 class TestNDCG:
     def test_perfect_binary(self, evaluator):
@@ -184,6 +187,7 @@ class TestNDCG:
 # Hit Rate
 # ---------------------------------------------------------------------------
 
+
 class TestHitRate:
     def test_hit(self, evaluator):
         assert evaluator.hit_at_k(["x", "a"], {"a"}, 2) is True
@@ -198,6 +202,7 @@ class TestHitRate:
 # ---------------------------------------------------------------------------
 # Full evaluation pipeline
 # ---------------------------------------------------------------------------
+
 
 class TestEvaluationPipeline:
     def test_single_query(self, evaluator):
@@ -273,6 +278,7 @@ class TestEvaluationPipeline:
 # ---------------------------------------------------------------------------
 # Experiment Tracker
 # ---------------------------------------------------------------------------
+
 
 class TestExperimentTracker:
     def test_create_and_list_runs(self, tracker):

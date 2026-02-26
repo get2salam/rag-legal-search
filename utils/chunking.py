@@ -29,9 +29,11 @@ import numpy as np
 # Chunk data model
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class Chunk:
     """A single chunk produced by a chunking strategy."""
+
     text: str
     index: int
     start_char: int
@@ -56,6 +58,7 @@ class Chunk:
 # Base class
 # ---------------------------------------------------------------------------
 
+
 class BaseChunker(ABC):
     """Abstract base for all chunking strategies."""
 
@@ -79,9 +82,28 @@ class BaseChunker(ABC):
         This avoids variable-width lookbehind issues across Python versions.
         """
         abbrevs = [
-            "Mr.", "Mrs.", "Ms.", "Dr.", "Prof.", "Jr.", "Sr.",
-            "Inc.", "Ltd.", "Corp.", "Co.", "No.", "Art.", "Sec.",
-            "Vol.", "Ch.", "Cl.", "Para.", "Sched.", "Pt.", "vs.", "v.",
+            "Mr.",
+            "Mrs.",
+            "Ms.",
+            "Dr.",
+            "Prof.",
+            "Jr.",
+            "Sr.",
+            "Inc.",
+            "Ltd.",
+            "Corp.",
+            "Co.",
+            "No.",
+            "Art.",
+            "Sec.",
+            "Vol.",
+            "Ch.",
+            "Cl.",
+            "Para.",
+            "Sched.",
+            "Pt.",
+            "vs.",
+            "v.",
         ]
         # Replace abbreviations with placeholders
         protected = text
@@ -128,6 +150,7 @@ class BaseChunker(ABC):
 # ---------------------------------------------------------------------------
 # 1. Fixed-size chunking
 # ---------------------------------------------------------------------------
+
 
 class FixedSizeChunker(BaseChunker):
     """
@@ -176,12 +199,14 @@ class FixedSizeChunker(BaseChunker):
 
             chunk_text = text[start:end].strip()
             if chunk_text:
-                chunks.append(Chunk(
-                    text=chunk_text,
-                    index=idx,
-                    start_char=start,
-                    end_char=end,
-                ))
+                chunks.append(
+                    Chunk(
+                        text=chunk_text,
+                        index=idx,
+                        start_char=start,
+                        end_char=end,
+                    )
+                )
                 idx += 1
 
             # Advance with overlap
@@ -193,6 +218,7 @@ class FixedSizeChunker(BaseChunker):
 # ---------------------------------------------------------------------------
 # 2. Sentence-based chunking
 # ---------------------------------------------------------------------------
+
 
 class SentenceChunker(BaseChunker):
     """
@@ -232,17 +258,19 @@ class SentenceChunker(BaseChunker):
                 start = text.find(current_sents[0], char_pos)
                 if start == -1:
                     start = char_pos
-                chunks.append(Chunk(
-                    text=chunk_text,
-                    index=idx,
-                    start_char=start,
-                    end_char=start + len(chunk_text),
-                ))
+                chunks.append(
+                    Chunk(
+                        text=chunk_text,
+                        index=idx,
+                        start_char=start,
+                        end_char=start + len(chunk_text),
+                    )
+                )
                 idx += 1
                 char_pos = start + len(chunk_text)
 
                 # Overlap: keep last N sentences
-                overlap_sents = current_sents[-self.sentence_overlap:]
+                overlap_sents = current_sents[-self.sentence_overlap :]
                 current_sents = overlap_sents
                 current_len = sum(len(s) for s in current_sents)
 
@@ -266,12 +294,14 @@ class SentenceChunker(BaseChunker):
                     end_char=start + len(chunk_text),
                 )
             else:
-                chunks.append(Chunk(
-                    text=chunk_text,
-                    index=idx,
-                    start_char=start,
-                    end_char=start + len(chunk_text),
-                ))
+                chunks.append(
+                    Chunk(
+                        text=chunk_text,
+                        index=idx,
+                        start_char=start,
+                        end_char=start + len(chunk_text),
+                    )
+                )
 
         return chunks
 
@@ -279,6 +309,7 @@ class SentenceChunker(BaseChunker):
 # ---------------------------------------------------------------------------
 # 3. Recursive chunking
 # ---------------------------------------------------------------------------
+
 
 class RecursiveChunker(BaseChunker):
     """
@@ -311,12 +342,14 @@ class RecursiveChunker(BaseChunker):
             pos = text.find(piece, search_from)
             if pos == -1:
                 pos = search_from
-            chunks.append(Chunk(
-                text=piece,
-                index=idx,
-                start_char=pos,
-                end_char=pos + len(piece),
-            ))
+            chunks.append(
+                Chunk(
+                    text=piece,
+                    index=idx,
+                    start_char=pos,
+                    end_char=pos + len(piece),
+                )
+            )
             search_from = pos + len(piece)
         return chunks
 
@@ -375,6 +408,7 @@ class RecursiveChunker(BaseChunker):
 # 4. Semantic chunking
 # ---------------------------------------------------------------------------
 
+
 class SemanticChunker(BaseChunker):
     """
     Group consecutive sentences based on embedding similarity.
@@ -415,7 +449,9 @@ class SemanticChunker(BaseChunker):
         similarities: List[float] = []
         for i in range(len(embeddings) - 1):
             a, b = embeddings[i], embeddings[i + 1]
-            cos_sim = float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-10))
+            cos_sim = float(
+                np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-10)
+            )
             similarities.append(cos_sim)
 
         # Determine threshold
@@ -446,13 +482,15 @@ class SemanticChunker(BaseChunker):
             pos = text.find(group[0], search_from)
             if pos == -1:
                 pos = search_from
-            chunks.append(Chunk(
-                text=chunk_text,
-                index=idx,
-                start_char=pos,
-                end_char=pos + len(chunk_text),
-                metadata={"num_sentences": len(group)},
-            ))
+            chunks.append(
+                Chunk(
+                    text=chunk_text,
+                    index=idx,
+                    start_char=pos,
+                    end_char=pos + len(chunk_text),
+                    metadata={"num_sentences": len(group)},
+                )
+            )
             search_from = pos + len(chunk_text)
 
         return chunks
@@ -468,7 +506,11 @@ class SemanticChunker(BaseChunker):
                 # Split large group in half, recursively
                 mid = len(group) // 2
                 result.extend(self._enforce_size_limits([group[:mid], group[mid:]]))
-            elif result and len(" ".join(result[-1]) + " " + group_text) <= self.max_chunk_size // 2:
+            elif (
+                result
+                and len(" ".join(result[-1]) + " " + group_text)
+                <= self.max_chunk_size // 2
+            ):
                 # Merge small groups
                 result[-1].extend(group)
             else:
@@ -480,6 +522,7 @@ class SemanticChunker(BaseChunker):
 # ---------------------------------------------------------------------------
 # 5. Sliding window chunking
 # ---------------------------------------------------------------------------
+
 
 class SlidingWindowChunker(BaseChunker):
     """
@@ -520,16 +563,18 @@ class SlidingWindowChunker(BaseChunker):
             if pos == -1:
                 pos = search_from
 
-            chunks.append(Chunk(
-                text=chunk_text,
-                index=idx,
-                start_char=pos,
-                end_char=pos + len(chunk_text),
-                metadata={
-                    "window_start": start,
-                    "window_end": min(start + self.window, len(sentences)),
-                },
-            ))
+            chunks.append(
+                Chunk(
+                    text=chunk_text,
+                    index=idx,
+                    start_char=pos,
+                    end_char=pos + len(chunk_text),
+                    metadata={
+                        "window_start": start,
+                        "window_end": min(start + self.window, len(sentences)),
+                    },
+                )
+            )
             # Only advance search_from by stride worth of text
             if start + self.stride < len(sentences):
                 stride_text = " ".join(sentences[start : start + self.stride])
@@ -545,6 +590,7 @@ class SlidingWindowChunker(BaseChunker):
 # ---------------------------------------------------------------------------
 # 6. Structure-aware chunking
 # ---------------------------------------------------------------------------
+
 
 class StructureAwareChunker(BaseChunker):
     """
@@ -564,12 +610,12 @@ class StructureAwareChunker(BaseChunker):
     SECTION_PATTERN = re.compile(
         r"(?:^|\n)"
         r"(?:"
-        r"#{1,4}\s+.+"              # Markdown headings
-        r"|(?:\d+\.)+\s+[A-Z]"     # Numbered sections: 1. / 1.1.
-        r"|\([a-z]\)\s+"           # Lettered subsections: (a) / (b)
-        r"|\([ivxlcdm]+\)\s+"     # Roman numeral subsections: (i) / (ii)
-        r"|[A-Z][A-Z\s]{5,}"       # ALL-CAPS headings (min 6 chars)
-        r"|---+"                    # Horizontal rules
+        r"#{1,4}\s+.+"  # Markdown headings
+        r"|(?:\d+\.)+\s+[A-Z]"  # Numbered sections: 1. / 1.1.
+        r"|\([a-z]\)\s+"  # Lettered subsections: (a) / (b)
+        r"|\([ivxlcdm]+\)\s+"  # Roman numeral subsections: (i) / (ii)
+        r"|[A-Z][A-Z\s]{5,}"  # ALL-CAPS headings (min 6 chars)
+        r"|---+"  # Horizontal rules
         r")",
         re.MULTILINE,
     )
@@ -624,26 +670,30 @@ class StructureAwareChunker(BaseChunker):
                     pos = text.find(sub_chunk.text[:50], search_from)
                     if pos == -1:
                         pos = search_from
-                    chunks.append(Chunk(
-                        text=sub_chunk.text,
-                        index=idx,
-                        start_char=pos,
-                        end_char=pos + len(sub_chunk.text),
-                        metadata={"source": "structure_split"},
-                    ))
+                    chunks.append(
+                        Chunk(
+                            text=sub_chunk.text,
+                            index=idx,
+                            start_char=pos,
+                            end_char=pos + len(sub_chunk.text),
+                            metadata={"source": "structure_split"},
+                        )
+                    )
                     idx += 1
                     search_from = pos + len(sub_chunk.text)
             else:
                 pos = text.find(section[:50], search_from)
                 if pos == -1:
                     pos = search_from
-                chunks.append(Chunk(
-                    text=section,
-                    index=idx,
-                    start_char=pos,
-                    end_char=pos + len(section),
-                    metadata={"source": "structure"},
-                ))
+                chunks.append(
+                    Chunk(
+                        text=section,
+                        index=idx,
+                        start_char=pos,
+                        end_char=pos + len(section),
+                        metadata={"source": "structure"},
+                    )
+                )
                 idx += 1
                 search_from = pos + len(section)
 

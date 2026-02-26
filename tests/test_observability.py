@@ -11,8 +11,6 @@ import pytest
 
 from utils.logging_config import (
     StructuredFormatter,
-    HumanReadableFormatter,
-    setup_logging,
     new_correlation_id,
     get_correlation_id,
     correlation_id,
@@ -220,9 +218,9 @@ class TestMetricsCollector:
         hist.observe(200)
 
         snap = hist.snapshot()
-        assert snap["buckets"]["10"] == 1    # 5
-        assert snap["buckets"]["50"] == 2    # 5, 30
-        assert snap["buckets"]["100"] == 3   # 5, 30, 75
+        assert snap["buckets"]["10"] == 1  # 5
+        assert snap["buckets"]["50"] == 2  # 5, 30
+        assert snap["buckets"]["100"] == 3  # 5, 30, 75
         assert snap["count"] == 4
 
     def test_prometheus_export(self, collector):

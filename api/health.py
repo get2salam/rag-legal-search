@@ -15,7 +15,6 @@ Endpoints:
 import os
 import time
 import platform
-import sys
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
@@ -29,6 +28,7 @@ from utils.metrics import get_collector
 
 class HealthStatus(str, Enum):
     """Health status values."""
+
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     UNHEALTHY = "unhealthy"
@@ -36,6 +36,7 @@ class HealthStatus(str, Enum):
 
 class DependencyCheck(BaseModel):
     """Health status of a single dependency."""
+
     name: str
     status: HealthStatus
     latency_ms: Optional[float] = None
@@ -45,6 +46,7 @@ class DependencyCheck(BaseModel):
 
 class HealthResponse(BaseModel):
     """Full health check response."""
+
     status: HealthStatus
     version: str
     uptime_seconds: float
@@ -65,11 +67,12 @@ def _check_vector_store() -> DependencyCheck:
     try:
         chroma_host = os.environ.get("CHROMA_HOST", "localhost")
         chroma_port = os.environ.get("CHROMA_PORT", "8000")
-        
+
         import urllib.request
+
         url = f"http://{chroma_host}:{chroma_port}/api/v1/heartbeat"
         req = urllib.request.Request(url, method="GET")
-        with urllib.request.urlopen(req, timeout=5) as resp:
+        with urllib.request.urlopen(req, timeout=5) as _:
             latency = (time.perf_counter() - start) * 1000
             return DependencyCheck(
                 name="chromadb",
@@ -98,7 +101,7 @@ def _check_embedding_service() -> DependencyCheck:
                 status=HealthStatus.DEGRADED,
                 message="OPENAI_API_KEY not configured; demo mode only",
             )
-        
+
         latency = (time.perf_counter() - start) * 1000
         return DependencyCheck(
             name="embedding_service",
@@ -120,17 +123,18 @@ def _check_disk_space() -> DependencyCheck:
     """Check available disk space."""
     try:
         import shutil
+
         usage = shutil.disk_usage("/")
         free_gb = usage.free / (1024**3)
         total_gb = usage.total / (1024**3)
         pct_free = (usage.free / usage.total) * 100
-        
+
         status = HealthStatus.HEALTHY
         if pct_free < 5:
             status = HealthStatus.UNHEALTHY
         elif pct_free < 15:
             status = HealthStatus.DEGRADED
-        
+
         return DependencyCheck(
             name="disk_space",
             status=status,
@@ -148,7 +152,7 @@ def _check_disk_space() -> DependencyCheck:
 def create_health_app() -> FastAPI:
     """
     Create FastAPI application with health and metrics endpoints.
-    
+
     Returns:
         Configured FastAPI app
     """
@@ -159,19 +163,19 @@ def create_health_app() -> FastAPI:
         docs_url="/docs",
         redoc_url=None,
     )
-    
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
         allow_methods=["GET"],
         allow_headers=["*"],
     )
-    
+
     @app.get("/health", response_model=HealthResponse)
     async def health_check():
         """
         Comprehensive health check.
-        
+
         Returns full status including all dependency checks.
         Useful for dashboards and debugging.
         """
@@ -180,7 +184,7 @@ def create_health_app() -> FastAPI:
             _check_embedding_service(),
             _check_disk_space(),
         ]
-        
+
         # Aggregate status
         statuses = {c.status for c in checks}
         if HealthStatus.UNHEALTHY in statuses:
@@ -189,7 +193,7 @@ def create_health_app() -> FastAPI:
             overall = HealthStatus.DEGRADED
         else:
             overall = HealthStatus.HEALTHY
-        
+
         return HealthResponse(
             status=overall,
             version=_version,
@@ -199,41 +203,41 @@ def create_health_app() -> FastAPI:
             python_version=platform.python_version(),
             dependencies=checks,
         )
-    
+
     @app.get("/health/live")
     async def liveness():
         """
         Kubernetes liveness probe.
-        
+
         Returns 200 if the process is alive. Only fails if the
         application is in an unrecoverable state.
         """
         return {"status": "alive"}
-    
+
     @app.get("/health/ready")
     async def readiness():
         """
         Kubernetes readiness probe.
-        
+
         Returns 200 only if the service can handle requests.
         Checks critical dependencies.
         """
         vector_check = _check_vector_store()
-        
+
         if vector_check.status == HealthStatus.UNHEALTHY:
             return Response(
                 content='{"status": "not ready", "reason": "vector store unavailable"}',
                 media_type="application/json",
                 status_code=503,
             )
-        
+
         return {"status": "ready"}
-    
+
     @app.get("/metrics")
     async def prometheus_metrics():
         """
         Export metrics in Prometheus text exposition format.
-        
+
         Compatible with Prometheus scrape targets and
         Grafana dashboards.
         """
@@ -242,17 +246,17 @@ def create_health_app() -> FastAPI:
             content=collector.to_prometheus(),
             media_type="text/plain; version=0.0.4; charset=utf-8",
         )
-    
+
     @app.get("/metrics/json")
     async def json_metrics():
         """
         Export metrics as JSON.
-        
+
         Useful for custom dashboards and debugging.
         """
         collector = get_collector()
         return collector.snapshot()
-    
+
     return app
 
 
