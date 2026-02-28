@@ -4,7 +4,13 @@ Embedding utilities for generating vector representations of text.
 
 import os
 from typing import List, Optional
+
 from tenacity import retry, stop_after_attempt, wait_exponential
+
+try:
+    from sentence_transformers import SentenceTransformer
+except ImportError:
+    SentenceTransformer = None  # type: ignore[assignment,misc]
 
 
 class EmbeddingModel:
@@ -53,8 +59,8 @@ class EmbeddingModel:
 
     def _init_local(self, model: str):
         """Initialize local sentence-transformers model."""
-        from sentence_transformers import SentenceTransformer
-
+        if SentenceTransformer is None:
+            raise ImportError("sentence-transformers is required for local models")
         self.client = SentenceTransformer(model)
         self.model = model
         self.provider = "local"

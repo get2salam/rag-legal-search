@@ -43,7 +43,9 @@ class TestEmbeddingModel:
 
             mock_model = MagicMock()
             mock_model.get_sentence_embedding_dimension.return_value = 384
-            mock_model.encode.return_value = np.random.rand(10, 384)
+            mock_model.encode.side_effect = lambda texts, **kw: np.random.rand(
+                len(texts), 384
+            )
             mock_st.return_value = mock_model
 
             from utils.embeddings import EmbeddingModel
@@ -153,11 +155,22 @@ class TestDemoResults:
     def test_demo_results_returned_without_api_key(self):
         """Test that demo results are returned when no API key is set."""
         import os
+        import sys
+        from unittest.mock import MagicMock
 
         # Remove API key if set
         original = os.environ.pop("OPENAI_API_KEY", None)
 
+        # Mock streamlit so app.py can be imported without it installed
+        st_mock = MagicMock()
+        st_mock.set_page_config = MagicMock()
+        st_mock.markdown = MagicMock()
+
         try:
+            sys.modules.setdefault("streamlit", st_mock)
+            # Remove cached module so re-import picks up the mock
+            sys.modules.pop("app", None)
+
             from app import get_demo_results
 
             results = get_demo_results("breach of contract")
@@ -169,3 +182,4 @@ class TestDemoResults:
         finally:
             if original:
                 os.environ["OPENAI_API_KEY"] = original
+            sys.modules.pop("app", None)

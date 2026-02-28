@@ -78,12 +78,9 @@ class Histogram:
     def snapshot(self) -> Dict:
         """Get a snapshot of the histogram state."""
         with self._lock:
-            cumulative = 0
             bucket_data = {}
             for bound in self.buckets:
-                cumulative += self._counts.get(bound, 0)
-                bucket_data[str(bound)] = cumulative
-            cumulative += self._counts.get(math.inf, 0) - cumulative
+                bucket_data[str(bound)] = self._counts.get(bound, 0)
             bucket_data["+Inf"] = self._count
 
             return {
