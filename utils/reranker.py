@@ -390,10 +390,224 @@ class MMRReranker(BaseReranker):
 # Factory
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# BM25Reranker
+# ---------------------------------------------------------------------------
+
+
+class BM25Reranker(BaseReranker):
+    """Re-rank results using the BM25 probabilistic ranking function.
+
+    BM25 (Best Match 25) extends TF-IDF with term-frequency saturation and
+    document-length normalisation.  The per-document score is::
+
+        IDF(t) = log((N - df(t) + 0.5) / (df(t) + 0.5) + 1)
+
+        TF_sat(t, d) = f(t, d) * (k1 + 1)
+                       -------------------------------------------
+                       f(t, d) + k1 * (1 - b + b * |d| / avgdl)
+
+        BM25(d, q) = Σ_t  IDF(t) * TF_sat(t, d)
+
+    Compared with :class:`TFIDFReranker`, BM25 prevents common terms from
+    dominating the score (saturation via ``k1``) and penalises verbose
+    documents that happen to repeat query terms many times (normalisation
+    via ``b``).
+
+    Args:
+        k1: Term-frequency saturation parameter.  Higher values give more
+            weight to repeated terms.  Typical range 1.2–2.0.
+            Default ``1.5``.
+        b: Document-length normalisation strength.  ``1.0`` = full
+           normalisation, ``0.0`` = none.  Default ``0.75``.
+
+    Example::
+
+        from utils.reranker import BM25Reranker
+
+        reranker = BM25Reranker(k1=1.2, b=0.75)
+        results  = reranker.rerank(query="breach of contract", results=docs, top_k=5)
+    """
+
+    def __init__(self, k1: float = 1.5, b: float = 0.75) -> None:
+        if k1 < 0:
+            raise ValueError(f"k1 must be non-negative, got {k1}")
+        if not 0.0 <= b <= 1.0:
+            raise ValueError(f"b must be in [0, 1], got {b}")
+        self.k1 = k1
+        self.b = b
+
+    # ------------------------------------------------------------------
+    # BM25-specific helpers
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _bm25_idf(term: str, doc_token_lists: List[List[str]], n_docs: int) -> float:
+        """Robertson-Sparck Jones IDF variant (always non-negative).
+
+        ``IDF(t) = log((N - df + 0.5) / (df + 0.5) + 1)``
+        """
+        df = sum(1 for tl in doc_token_lists if term in tl)
+        return math.log((n_docs - df + 0.5) / (df + 0.5) + 1)
+
+    def _score_doc(
+        self,
+        query_tokens: List[str],
+        doc_tokens: List[str],
+        doc_len: int,
+        avgdl: float,
+        idf_map: Dict[str, float],
+    ) -> float:
+        """Compute the BM25 score for a single document."""
+        tf_map = _term_freq(doc_tokens)
+        score = 0.0
+        for term in query_tokens:
+            idf = idf_map.get(term, 0.0)
+            f = tf_map.get(term, 0)
+            denom = f + self.k1 * (1 - self.b + self.b * doc_len / (avgdl or 1))
+            tf_sat = f * (self.k1 + 1) / (denom or 1)
+            score += idf * tf_sat
+        return score
+
+    def rerank(
+        self,
+        query: str,
+        results: List[Dict],
+        top_k: Optional[int] = None,
+    ) -> List[Dict]:
+        if not results:
+            return []
+
+        query_tokens = _tokenize(query)
+        doc_token_lists = [_tokenize(self._get_text(r)) for r in results]
+        doc_lengths = [len(tl) for tl in doc_token_lists]
+        avgdl = sum(doc_lengths) / len(doc_lengths) if doc_lengths else 1.0
+        n_docs = len(results)
+
+        # Precompute IDF for each unique query term
+        idf_map = {
+            t: self._bm25_idf(t, doc_token_lists, n_docs) for t in set(query_tokens)
+        }
+
+        scored: List[Dict] = []
+        for result, doc_tokens, doc_len in zip(results, doc_token_lists, doc_lengths):
+            bm25_score = self._score_doc(
+                query_tokens, doc_tokens, doc_len, avgdl, idf_map
+            )
+            entry = dict(result)
+            entry["rerank_score"] = round(bm25_score, 6)
+            entry["rerank_method"] = f"bm25(k1={self.k1},b={self.b})"
+            scored.append(entry)
+
+        scored.sort(key=lambda r: r["rerank_score"], reverse=True)
+        return self._slice(scored, top_k)
+
+
+# ---------------------------------------------------------------------------
+# RRFCombiner
+# ---------------------------------------------------------------------------
+
+
+class RRFCombiner:
+    """Reciprocal Rank Fusion (RRF) combiner for merging multiple ranked lists.
+
+    RRF assigns each document a fused score based on its rank position across
+    all provided ranked lists::
+
+        RRF(d) = Σ_r  1 / (k + rank_r(d))
+
+    where ``rank_r(d)`` is the 1-based position of document ``d`` in ranker
+    ``r``'s output and ``k`` is a smoothing constant (default 60, as in the
+    original Cormack et al. 2009 paper).
+
+    RRF is robust, parameter-insensitive, and consistently outperforms
+    linear score combination for hybrid retrieval systems.  It is especially
+    effective when fusing semantic (embedding) rankings with lexical (BM25 /
+    TF-IDF) rankings.
+
+    Args:
+        k: Rank smoothing constant.  Smaller values amplify the advantage of
+           top-ranked documents; larger values flatten rank differences.
+           Default ``60``.
+        id_field: Document field used to match entries across lists.
+                  Default ``"id"``.
+
+    Example::
+
+        from utils.reranker import BM25Reranker, MMRReranker, RRFCombiner, TFIDFReranker
+
+        tfidf_results = TFIDFReranker().rerank(query, docs)
+        bm25_results  = BM25Reranker().rerank(query, docs)
+        mmr_results   = MMRReranker().rerank(query, docs)
+
+        fused = RRFCombiner().fuse([tfidf_results, bm25_results, mmr_results], top_k=5)
+    """
+
+    def __init__(self, k: int = 60, id_field: str = "id") -> None:
+        if k <= 0:
+            raise ValueError(f"k must be positive, got {k}")
+        self.k = k
+        self.id_field = id_field
+
+    def fuse(
+        self,
+        ranked_lists: List[List[Dict]],
+        top_k: Optional[int] = None,
+    ) -> List[Dict]:
+        """Merge multiple ranked lists into a single fused ranking.
+
+        Args:
+            ranked_lists: Two or more lists of result dicts, each already
+                          ordered from most to least relevant (index 0 = rank 1).
+                          All documents must share the ``id_field`` key.
+            top_k: Maximum number of results to return (``None`` → all).
+
+        Returns:
+            Fused list of result dicts, sorted by descending RRF score, each
+            augmented with ``rrf_score`` and ``rrf_rank`` fields.
+
+        Raises:
+            ValueError: If *ranked_lists* is empty.
+        """
+        if not ranked_lists:
+            raise ValueError("ranked_lists must contain at least one list")
+
+        rrf_scores: Dict[str, float] = {}
+        doc_store: Dict[str, Dict] = {}
+
+        for ranked in ranked_lists:
+            for rank_idx, doc in enumerate(ranked):
+                doc_id = doc.get(self.id_field)
+                if doc_id is None:
+                    continue  # silently skip docs without a matchable id
+                contribution = 1.0 / (self.k + rank_idx + 1)
+                rrf_scores[doc_id] = rrf_scores.get(doc_id, 0.0) + contribution
+                if doc_id not in doc_store:
+                    doc_store[doc_id] = dict(doc)
+
+        sorted_ids = sorted(rrf_scores, key=lambda d: rrf_scores[d], reverse=True)
+        if top_k is not None:
+            sorted_ids = sorted_ids[:top_k]
+
+        fused: List[Dict] = []
+        for rank, doc_id in enumerate(sorted_ids, start=1):
+            entry = dict(doc_store[doc_id])
+            entry["rrf_score"] = round(rrf_scores[doc_id], 8)
+            entry["rrf_rank"] = rank
+            fused.append(entry)
+
+        return fused
+
+
+# ---------------------------------------------------------------------------
+# Factory
+# ---------------------------------------------------------------------------
+
 _RERANKER_REGISTRY: Dict[str, type] = {
     "tfidf": TFIDFReranker,
     "score": ScoreReranker,
     "mmr": MMRReranker,
+    "bm25": BM25Reranker,
 }
 
 
@@ -401,7 +615,7 @@ def get_reranker(method: str = "mmr", **kwargs) -> BaseReranker:
     """Instantiate a re-ranker by name.
 
     Args:
-        method: One of ``"tfidf"``, ``"score"``, or ``"mmr"``.
+        method: One of ``"tfidf"``, ``"score"``, ``"mmr"``, or ``"bm25"``.
         **kwargs: Forwarded to the reranker constructor.
 
     Returns:
