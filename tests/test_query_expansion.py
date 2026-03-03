@@ -411,7 +411,10 @@ class TestPRFExpander:
         # "wolverine" comes from doc[2] which is outside top_k_docs=1
         assert "wolverine" not in result.expanded_query
         # Some term from doc[0] should be present
-        assert any(t in result.expanded_query for t in ("xylophone", "damages", "breach", "expectation"))
+        assert any(
+            t in result.expanded_query
+            for t in ("xylophone", "damages", "breach", "expectation")
+        )
 
     def test_min_doc_freq_filters_rare_terms(self):
         # With min_doc_freq=3 only terms appearing in all 3 docs pass
