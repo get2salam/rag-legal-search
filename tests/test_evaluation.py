@@ -3,6 +3,8 @@ Tests for retrieval evaluation metrics and experiment tracking.
 """
 
 import json
+import shutil
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -22,10 +24,10 @@ def evaluator():
 
 
 @pytest.fixture
-def experiment_dir(tmp_path):
-    d = tmp_path / "experiments"
-    d.mkdir()
-    return str(d)
+def experiment_dir():
+    d = tempfile.mkdtemp()
+    yield d
+    shutil.rmtree(d, ignore_errors=True)
 
 
 @pytest.fixture
