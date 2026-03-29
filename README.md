@@ -4,11 +4,11 @@ A semantic search engine for legal case law using Retrieval-Augmented Generation
 
 ## 🎯 What It Does
 
-- **Natural Language Search** — "What are the precedents for breach of contract in employment?"
-- **Semantic Matching** — Finds conceptually similar cases, not just keyword matches
-- **AI Summaries** — Each result includes a plain-English explanation of relevance
-- **Source Citations** — Full citations and links to original documents
-- **Filtering** — By court, date range, jurisdiction, topic
+- **Natural Language Search** - "What are the precedents for breach of contract in employment?"
+- **Semantic Matching** - Finds conceptually similar cases, not just keyword matches
+- **AI Summaries** - Each result includes a plain-English explanation of relevance
+- **Source Citations** - Full citations and links to original documents
+- **Filtering** - By court, date range, jurisdiction, topic
 
 ## 🚀 Live Demo
 
@@ -155,7 +155,7 @@ CHUNK_CONFIG = {
 
 ```
 "cases about wrongful termination in the UK"
-"precedents for intellectual property infringement"  
+"precedents for intellectual property infringement"
 "contract law breach of duty cases 2020-2024"
 "landlord tenant disputes security deposit"
 "employment discrimination age-based"
@@ -193,10 +193,13 @@ pytest --cov=utils tests/
 
 | Metric | Value |
 |--------|-------|
-| Index Size | 10,000 cases |
+| Index Size | 178,989 cases (15 reporters) |
+| Total Documents | 216,000+ (cases + court judgments) |
 | Query Latency | ~500ms |
-| Embedding Dim | 1536 (OpenAI) |
+| Embedding Dim | 1536 (OpenAI) / 384 (local) |
 | Top-k Results | 10 |
+| Year Coverage | 1947-2026 |
+| Reporters Covered | SCMR, PLD, CLC, MLD, PCrLJ, PTD, PLC, YLR, CLD, GBLR, PLCCS, PCRLJN, YLRN, PLCCSN, CLCN |
 
 ## 👨‍💻 Author
 
@@ -214,5 +217,15 @@ MIT License - see [LICENSE](LICENSE)
 ---
 
 *Building the future of legal technology.*
- 
+
+---
+
+## 📝 Changelog
+
+### [2026-03-29]
+- Updated corpus stats: **178,989 cases** across 15 reporters (SCMR, PLD, CLC, MLD, PCrLJ, PTD, PLC, YLR, CLD, GBLR, PLCCS, PCRLJN, YLRN, PLCCSN, CLCN)
+- Total indexed documents now **216,000+** including court judgments
+- Extended year coverage: 1947–2026 (80 years of Pakistani case law)
+- Added support for newer reporters: PCRLJN, YLRN, PLCCSN, CLCN
+ 
  

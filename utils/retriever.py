@@ -97,8 +97,16 @@ class LegalRetriever:
 
         return formatted_results
 
-    def _build_filters(self, filters: Dict) -> Optional[Dict]:
-        """Build vector store filter from search filters."""
+    def _build_filters(self, filters: Dict) -> Optional[Dict[str, object]]:
+        """
+        Build vector store filter from search filters.
+
+        Args:
+            filters: Dict with optional keys: year_from, year_to, courts, categories
+
+        Returns:
+            ChromaDB/Pinecone compatible filter dict, or None if no filters apply
+        """
         conditions = []
 
         if filters.get("year_from") and filters.get("year_to"):
@@ -117,8 +125,17 @@ class LegalRetriever:
 
         return {"$and": conditions} if len(conditions) > 1 else conditions[0]
 
-    def _format_result(self, result: Dict) -> Dict:
-        """Format a raw result into the display format."""
+    def _format_result(self, result: Dict) -> Dict[str, object]:
+        """
+        Format a raw vector store result into the UI display format.
+
+        Args:
+            result: Raw result from vector store with 'id', 'metadata', 'score', 'text' keys
+
+        Returns:
+            Formatted dict with title, citation, court, date, score, excerpt, and
+            empty relevance_explanation (populated later by _add_explanations)
+        """
         metadata = result.get("metadata", {})
 
         return {
